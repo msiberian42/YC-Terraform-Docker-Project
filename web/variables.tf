@@ -49,35 +49,3 @@ variable "vms_resources" {
     }
   }
 }
-
-# DB resources
-variable "db_variables" {
-  type = list(object({
-    vm_name       = string,
-    cores         = number,
-    memory        = number,
-    size          = number,
-    core_fraction = number,
-    preemptible   = bool,
-    nat           = bool
-  }))
-
-  default = [{
-    vm_name       = "main",
-    cores         = 4,
-    memory        = 4,
-    size          = 15,
-    core_fraction = 15,
-    preemptible   = true,
-    nat           = true
-    },
-    {
-      vm_name       = "replica",
-      cores         = 4,
-      memory        = 4,
-      size          = 15,
-      core_fraction = 15,
-      preemptible   = true,
-      nat           = true
-  }]
-}
