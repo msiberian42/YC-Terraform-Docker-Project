@@ -1,11 +1,3 @@
-# data "template_file" "cloudinit" {
-#   template = file("${path.module}/cloud-init.yml")
-
-#   vars = {
-#     ssh_key = var.ssh_key
-#   }
-# }
-
 data "yandex_compute_image" "ubuntu" {
   family = var.vm_image_family
 }
@@ -60,8 +52,4 @@ resource "yandex_compute_instance" "web" {
     serial-port-enable = tostring(var.serial_port_enable)
     ssh-keys           = "ubuntu:${var.ssh_key}"
   }
-
-  # depends_on = [
-  #   yandex_compute_instance.db
-  # ]
 }

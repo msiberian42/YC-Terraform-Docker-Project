@@ -19,13 +19,10 @@ variable "vm_platform_id" {
   default = "standard-v3"
 }
 
-# VM count
-variable "web_vm_count" {
-  type        = number
-  default     = 2
-  description = "web VM count"
+variable "db_vm_name" {
+  type        = string
+  description = "DB VM name"
 }
-
 
 # VM resources
 variable "vms_resources" {
@@ -39,20 +36,13 @@ variable "vms_resources" {
   }))
 
   default = {
-    web = {
-      cores         = 2,
-      memory        = 2,
+    db = {
+      cores         = 4,
+      memory        = 4,
       core_fraction = 20,
-      size          = 12,
+      size          = 15,
       preemptible   = true,
       nat           = true
     }
-
-    # db = {
-    #   cores         = 2
-    #   memory        = 2
-    #   core_fraction = 20
-    #   size          = 15
-    # }
   }
 }

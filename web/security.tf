@@ -53,7 +53,6 @@ variable "security_group_egress" {
   ]
 }
 
-
 resource "yandex_vpc_security_group" "project1-web-security-group" {
   name       = "web_dynamic"
   network_id = data.terraform_remote_state.vpc.outputs.network_id
