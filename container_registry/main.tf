@@ -4,7 +4,7 @@ resource "yandex_container_registry" "project1" {
 }
 
 resource "yandex_container_repository" "project1_web" {
-  name = "${yandex_container_registry.project1.id}/project1/web"
+  name = "${yandex_container_registry.project1.id}/web"
 }
 
 resource "yandex_iam_service_account" "project1_web" {

@@ -6,16 +6,86 @@ package_upgrade: false
 packages:
   - docker.io
   - docker-compose-v2
-  
+  - curl
+
+# Создаём каталоги
+bootcmd:
+  - mkdir -p /opt/project1/haproxy/reverse
+  - mkdir -p /opt/project1/nginx/ingress
+
+write_files:
+
+  # Docker compose
+  - path: /opt/project1/compose.yaml
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${compose_yaml}
+
+  # HAProxy
+  - path: /opt/project1/haproxy/reverse/haproxy.cfg
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${haproxy_cfg}
+
+  # Nginx
+  - path: /opt/project1/nginx/ingress/nginx.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${nginx_conf}
+
+  - path: /opt/project1/nginx/ingress/default.conf
+    permissions: "0644"
+    owner: root:root
+    content: |
+      ${nginx_default}
+
+  # Enviroment
+  - path: /opt/project1/.env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      WEB_IMAGE=${web_image}
+      DB_HOST=${db_host}
+      DB_PORT=3306
+      DB_NAME=${db_name}
+      DB_USER=${db_user}
+      DB_PASSWORD=${db_password}
 
 runcmd:
-  # Запускаем Docker и добавляем в автозапуск
+
+  # Запускаем Docker
   - systemctl enable docker
   - systemctl start docker
 
-  # Разрешаем пользователю ubuntu работать с Docker без sudo
+  # Добавляем ubuntu в группу docker
   - usermod -aG docker ubuntu
 
-  # Проверяем установку
-  - docker --version
-  - docker compose version
+  # Создаём директории приложения
+  - mkdir -p /opt/project1
+
+  # Авторизация в Yandex Container Registry
+  - |
+      TOKEN=$(curl --fail --silent \
+        --header Metadata-Flavor:Google \
+        http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
+        | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+
+      echo "$TOKEN" | docker login \
+        --username iam \
+        --password-stdin \
+        cr.yandex
+
+  # Переходим в каталог приложения
+  - cd /opt/project1
+
+  # Скачиваем образы
+  - docker compose pull
+
+  # Запускаем приложение
+  - docker compose up -d
+
+  # Показываем состояние контейнеров
+  - docker compose ps
