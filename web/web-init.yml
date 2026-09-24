@@ -20,7 +20,46 @@ write_files:
     permissions: "0644"
     owner: root:root
     content: |
-      ${compose_yaml}
+      services:
+
+        reverse-proxy:
+          image: haproxy:2.4
+          restart: always
+          networks:
+            backend: {}
+          ports:
+            - "127.0.0.1:8080:8080"
+          volumes:
+            - /opt/project1/haproxy/reverse/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+
+        web:
+          image: ${web_image}
+          restart: always
+          networks:
+            backend:
+              ipv4_address: 172.20.0.5
+          environment:
+            DB_HOST: ${db_host}
+            DB_PORT: 3306
+            DB_NAME: ${db_name}
+            DB_USER: ${db_user}
+            DB_PASSWORD: ${db_password}
+
+        ingress-proxy:
+          image: nginx:latest
+          restart: always
+          network_mode: host
+          volumes:
+            - /opt/project1/nginx/ingress/default.conf:/etc/nginx/conf.d/default.conf:ro
+            - /opt/project1/nginx/ingress/nginx.conf:/etc/nginx/nginx.conf:ro
+
+      networks:
+        backend:
+          name: backend
+          driver: bridge
+          ipam:
+            config:
+              - subnet: 172.20.0.0/24
 
   # HAProxy
   - path: /opt/project1/haproxy/reverse/haproxy.cfg

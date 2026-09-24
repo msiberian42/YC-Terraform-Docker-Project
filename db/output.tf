@@ -5,7 +5,7 @@ output "database_id" {
 
 output "database_ip" {
   description = "DB IP"
-  value       = yandex_compute_instance.db.ip_address
+  value       = yandex_compute_instance.db.network_interface[0].ip_address
 }
 
 output "db_name" {

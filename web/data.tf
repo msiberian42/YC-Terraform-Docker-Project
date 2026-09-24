@@ -68,20 +68,30 @@ data "template_file" "web-init" {
     db_user     = data.terraform_remote_state.db.outputs.db_user
     db_password = var.db_password
 
-    web_image = "cr.yandex/${data.terraform_remote_state.container-registry.web_repository}:v1"
+    web_image = "cr.yandex/${data.terraform_remote_state.container-registry.outputs.web_repository}:v2"
 
-    compose_yaml = file("${path.module}/app/compose.yaml")
+    # compose_yaml = indent(
+    #   6,
+    #   replace(
+    #     file("${path.module}/app/compose.yaml"),
+    #     "$",
+    #     "$$"
+    #   )
+    # )
 
-    haproxy_cfg = file(
-      "${path.module}/app/haproxy/reverse/haproxy.cfg"
+    haproxy_cfg = indent(
+      6,
+      file("${path.module}/app/haproxy/reverse/haproxy.cfg")
     )
 
-    nginx_default_conf = file(
-      "${path.module}/app/nginx/ingress/default.conf"
+    nginx_default = indent(
+      6,
+      file("${path.module}/app/nginx/ingress/default.conf")
     )
 
-    nginx_conf = file(
-      "${path.module}/app/nginx/ingress/nginx.conf"
+    nginx_conf = indent(
+      6,
+      file("${path.module}/app/nginx/ingress/nginx.conf")
     )
   }
 }
