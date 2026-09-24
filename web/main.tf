@@ -27,6 +27,7 @@ resource "yandex_compute_instance" "web" {
   }
 
   metadata = {
+    user-data          = data.template_file.web-init.rendered
     serial-port-enable = tostring(var.serial_port_enable)
     ssh-keys           = "ubuntu:${var.ssh_key}"
   }
