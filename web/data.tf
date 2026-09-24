@@ -39,3 +39,7 @@ data "terraform_remote_state" "container-registry" {
     skip_s3_checksum            = true
   }
 }
+
+data "template_file" "web-init" {
+  template = file("${path.module}/web-init.yml")
+}
