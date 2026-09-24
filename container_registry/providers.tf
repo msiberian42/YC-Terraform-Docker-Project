@@ -5,6 +5,23 @@ terraform {
       source = "yandex-cloud/yandex"
     }
   }
+
+  backend "s3" {
+    bucket = "project1-terraform-bucket"
+    key    = "registry/terraform.tfstate"
+    region = "ru-central1"
+
+    use_lockfile = true
+
+    endpoints = {
+      s3 = "https://storage.yandexcloud.net"
+    }
+
+    skip_region_validation      = true
+    skip_credentials_validation = true
+    skip_requesting_account_id  = true
+    skip_s3_checksum            = true
+  }
 }
 
 
