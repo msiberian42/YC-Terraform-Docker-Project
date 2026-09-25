@@ -6,7 +6,7 @@ resource "yandex_vpc_security_group" "project1-db-security-group" {
     protocol          = "TCP"
     description       = "MySQL to web"
     port              = 3306
-    security_group_id = data.terraform_remote_state.web.outputs.web_security_group_id
+    security_group_id = yandex_vpc_security_group.project1-web-security-group.id
   }
 
   ingress {

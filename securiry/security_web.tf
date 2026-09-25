@@ -28,6 +28,12 @@ variable "security_group_ingress" {
       v4_cidr_blocks = ["0.0.0.0/0"]
       port           = 443
     },
+    {
+      protocol       = "TCP"
+      description    = "Web app"
+      v4_cidr_blocks = ["0.0.0.0/0"]
+      port           = 8090
+    }
   ]
 }
 
