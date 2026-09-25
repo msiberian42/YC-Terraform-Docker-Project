@@ -70,15 +70,6 @@ data "template_file" "web-init" {
 
     web_image = "cr.yandex/${data.terraform_remote_state.container-registry.outputs.web_repository}:v2"
 
-    # compose_yaml = indent(
-    #   6,
-    #   replace(
-    #     file("${path.module}/app/compose.yaml"),
-    #     "$",
-    #     "$$"
-    #   )
-    # )
-
     haproxy_cfg = indent(
       6,
       file("${path.module}/app/haproxy/reverse/haproxy.cfg")
