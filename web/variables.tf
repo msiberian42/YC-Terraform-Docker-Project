@@ -49,3 +49,7 @@ variable "vms_resources" {
     }
   }
 }
+
+variable "db_password" {
+  type = string
+}
