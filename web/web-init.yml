@@ -7,6 +7,7 @@ packages:
   - docker.io
   - docker-compose-v2
   - curl
+  - openssh-server
 
 # Создаём каталоги
 bootcmd:
@@ -94,6 +95,9 @@ write_files:
       DB_PASSWORD=${db_password}
 
 runcmd:
+  # Запускаем SSH
+  - systemctl enable ssh
+  - systemctl start ssh
 
   # Запускаем Docker
   - systemctl enable docker
