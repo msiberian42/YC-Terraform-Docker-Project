@@ -3,6 +3,9 @@ resource "yandex_compute_instance" "db" {
   hostname = var.db_vm_name
 
   platform_id = var.vm_platform_id
+
+  service_account_id = yandex_iam_service_account.project1_db.id
+  
   resources {
     cores         = var.vms_resources["db"].cores
     memory        = var.vms_resources["db"].memory
@@ -28,4 +31,20 @@ resource "yandex_compute_instance" "db" {
     serial-port-enable = tostring(var.serial_port_enable)
     ssh-keys           = "ubuntu:${var.ssh_key}"
   }
+
+  depends_on = [
+    yandex_lockbox_secret_iam_member.project1_db_payload_viewer
+  ]
+}
+
+resource "yandex_iam_service_account" "project1_db" {
+  name      = "project1-db"
+  folder_id = var.folder_id
+}
+
+resource "yandex_lockbox_secret_iam_member" "project1_db_payload_viewer" {
+  secret_id = data.terraform_remote_state.lockbox.outputs.lockbox_id
+  role      = "lockbox.payloadViewer"
+
+  member = "serviceAccount:${yandex_iam_service_account.project1_db.id}"
 }
