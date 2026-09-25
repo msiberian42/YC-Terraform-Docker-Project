@@ -20,7 +20,7 @@ resource "yandex_compute_instance" "db" {
   network_interface {
     subnet_id          = data.terraform_remote_state.vpc.outputs.subnets["ru-central1-a"].id
     nat                = var.vms_resources["db"].nat
-    security_group_ids = [yandex_vpc_security_group.project1-db-security-group.id]
+    security_group_ids = [data.terraform_remote_state.security.outputs.db_security_group_id]
   }
 
   metadata = {
