@@ -33,6 +33,7 @@ resource "yandex_compute_instance" "web" {
   }
 
   depends_on = [
+    yandex_resourcemanager_folder_iam_member.project1_web_puller,
     yandex_lockbox_secret_iam_member.project1_web_payload_viewer
   ]
 }

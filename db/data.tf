@@ -63,8 +63,8 @@ data "template_file" "db-init" {
   template = file("${path.module}/db-init.yml")
 
   vars = {
-    db_name     = var.db_name
-    db_user     = var.db_user
-    db_password = var.db_password
+    db_name              = var.db_name
+    db_user              = var.db_user
+    db_lockbox_secret_id = data.terraform_remote_state.lockbox.outputs.lockbox_id
   }
 }

@@ -5,7 +5,7 @@ resource "yandex_compute_instance" "db" {
   platform_id = var.vm_platform_id
 
   service_account_id = yandex_iam_service_account.project1_db.id
-  
+
   resources {
     cores         = var.vms_resources["db"].cores
     memory        = var.vms_resources["db"].memory

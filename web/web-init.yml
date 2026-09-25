@@ -3,6 +3,12 @@
 package_update: true
 package_upgrade: false
 
+datasource:
+  Ec2:
+    strict_id: false
+  secrets:
+    project1_db: ${db_lockbox_secret_id}
+
 packages:
   - docker.io
   - docker-compose-v2
@@ -44,7 +50,7 @@ write_files:
             DB_PORT: 3306
             DB_NAME: ${db_name}
             DB_USER: ${db_user}
-            DB_PASSWORD: ${db_password}
+            DB_PASSWORD: $${DB_PASSWORD}
 
         ingress-proxy:
           image: nginx:latest
@@ -120,6 +126,37 @@ runcmd:
         --username iam \
         --password-stdin \
         cr.yandex
+
+      DB_PASSWORD="$(
+        curl -fsS \
+          --header "Authorization: Bearer ${IAM_TOKEN}" \
+          "https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/${LOCKBOX_SECRET_ID}/payload" \
+        | python3 -c '
+      import json
+      import sys
+
+      payload = json.load(sys.stdin)
+
+      for entry in payload["entries"]:
+          if entry["key"] == "password":
+              print(entry["textValue"])
+              break
+      '
+      )"
+
+      test -n "$DB_PASSWORD"
+
+      echo "$IAM_TOKEN" | docker login \
+        --username iam \
+        --password-stdin \
+        cr.yandex
+
+      export WEB_IMAGE="${web_image}"
+      export DB_HOST="${db_host}"
+      export DB_PORT="3306"
+      export DB_NAME="${db_name}"
+      export DB_USER="${db_user}"
+      export DB_PASSWORD
 
   # Переходим в каталог приложения
   - cd /opt/project1

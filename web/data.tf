@@ -101,10 +101,10 @@ data "template_file" "web-init" {
   template = file("${path.module}/web-init.yml")
 
   vars = {
-    db_host     = data.terraform_remote_state.db.outputs.database_ip
-    db_name     = data.terraform_remote_state.db.outputs.db_name
-    db_user     = data.terraform_remote_state.db.outputs.db_user
-    db_password = var.db_password
+    db_host              = data.terraform_remote_state.db.outputs.database_ip
+    db_name              = data.terraform_remote_state.db.outputs.db_name
+    db_user              = data.terraform_remote_state.db.outputs.db_user
+    db_lockbox_secret_id = data.terraform_remote_state.lockbox.outputs.lockbox_id
 
     web_image = "cr.yandex/${data.terraform_remote_state.container-registry.outputs.web_repository}:v2"
 
