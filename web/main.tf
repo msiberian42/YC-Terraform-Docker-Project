@@ -24,6 +24,7 @@ resource "yandex_compute_instance" "web" {
     subnet_id          = data.terraform_remote_state.vpc.outputs.subnets["ru-central1-a"].id
     nat                = var.vms_resources["web"].nat
     security_group_ids = [data.terraform_remote_state.security.outputs.web_security_group_id]
+    nat_ip_address     = yandex_vpc_address.project1_web[count.index].external_ipv4_address[0].address
   }
 
   metadata = {
@@ -54,4 +55,14 @@ resource "yandex_lockbox_secret_iam_member" "project1_web_payload_viewer" {
   role      = "lockbox.payloadViewer"
 
   member = "serviceAccount:${yandex_iam_service_account.project1_web.id}"
+}
+
+resource "yandex_vpc_address" "project1_web" {
+  count = var.web_vm_count
+
+  name = "project1-web-${count.index + 1}-public-ip"
+
+  external_ipv4_address {
+    zone_id = "ru-central1-a"
+  }
 }
