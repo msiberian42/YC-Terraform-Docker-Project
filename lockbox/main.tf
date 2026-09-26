@@ -13,14 +13,6 @@ resource "yandex_lockbox_secret" "project1_db" {
   }
 }
 
-# resource "random_password" "db_password" {
-#   length  = 16
-#   special = true
-# }
-
 resource "yandex_lockbox_secret_version_hashed" "project1_db" {
   secret_id = yandex_lockbox_secret.project1_db.id
-
-  #   key_1        = "password"
-  #   text_value_1 = random_password.db_password.result
 }
