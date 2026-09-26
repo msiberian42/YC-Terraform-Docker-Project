@@ -108,19 +108,22 @@ data "template_file" "web-init" {
 
     web_image = "cr.yandex/${data.terraform_remote_state.container-registry.outputs.web_repository}:v2"
 
-    haproxy_cfg = indent(
-      6,
-      file("${path.module}/app/haproxy/reverse/haproxy.cfg")
+    haproxy_cfg = replace(
+      file("${path.module}/app/haproxy/reverse/haproxy.cfg"),
+      "\n",
+      "\n      "
     )
 
-    nginx_default = indent(
-      6,
-      file("${path.module}/app/nginx/ingress/default.conf")
+    nginx_default = replace(
+      file("${path.module}/app/nginx/ingress/default.conf"),
+      "\n",
+      "\n      "
     )
 
-    nginx_conf = indent(
-      6,
-      file("${path.module}/app/nginx/ingress/nginx.conf")
+    nginx_conf = replace(
+      file("${path.module}/app/nginx/ingress/nginx.conf"),
+      "\n",
+      "\n      "
     )
   }
 }

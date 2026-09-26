@@ -3,14 +3,8 @@
 package_update: true
 package_upgrade: false
 
-packages:
-  - docker.io
-  - docker-compose-v2
-  - curl
-  - python3
-  - openssh-server
-
 bootcmd:
+  - mkdir -p /opt/project1
   - mkdir -p /opt/project1/haproxy/reverse
   - mkdir -p /opt/project1/nginx/ingress
 
@@ -67,22 +61,53 @@ write_files:
     permissions: "0644"
     owner: root:root
     content: |
-${haproxy_cfg}
+      ${haproxy_cfg}
 
   # NGINX
   - path: /opt/project1/nginx/ingress/nginx.conf
     permissions: "0644"
     owner: root:root
     content: |
-${nginx_conf}
+      ${nginx_conf}
 
   - path: /opt/project1/nginx/ingress/default.conf
     permissions: "0644"
     owner: root:root
     content: |
-${nginx_default}
+      ${nginx_default}
 
 runcmd:
+
+  - |
+      set -eux
+
+      export DEBIAN_FRONTEND=noninteractive
+
+      echo "=== APT: update ==="
+      apt-get update
+
+      echo "=== APT: install software-properties-common ==="
+      apt-get install -y software-properties-common
+
+      echo "=== APT: enable universe ==="
+      add-apt-repository -y universe
+
+      echo "=== APT: update after enabling universe ==="
+      apt-get update
+
+      echo "=== APT: install packages ==="
+      apt-get install -y \
+        docker.io \
+        docker-compose-v2 \
+        curl \
+        python3 \
+        openssh-server
+
+      echo "=== Installed versions ==="
+      docker --version
+      docker compose version
+      python3 --version
+      curl --version | head -n 1
 
   # SSH
   - systemctl unmask ssh.service
