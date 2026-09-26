@@ -4,7 +4,7 @@ resource "yandex_compute_instance" "web" {
   hostname = "project1-web-${count.index + 1}"
 
   platform_id        = var.vm_platform_id
-  service_account_id = data.terraform_remote_state.container-registry.outputs.web_service_account_id
+  service_account_id = yandex_iam_service_account.project1_web.id
 
   resources {
     cores         = var.vms_resources["web"].cores
@@ -31,4 +31,27 @@ resource "yandex_compute_instance" "web" {
     serial-port-enable = tostring(var.serial_port_enable)
     ssh-keys           = "ubuntu:${var.ssh_key}"
   }
+
+  depends_on = [
+    yandex_resourcemanager_folder_iam_member.project1_web_puller,
+    yandex_lockbox_secret_iam_member.project1_web_payload_viewer
+  ]
+}
+
+resource "yandex_iam_service_account" "project1_web" {
+  name      = "project1-web"
+  folder_id = var.folder_id
+}
+
+resource "yandex_resourcemanager_folder_iam_member" "project1_web_puller" {
+  folder_id = var.folder_id
+  role      = "container-registry.images.puller"
+  member    = "serviceAccount:${yandex_iam_service_account.project1_web.id}"
+}
+
+resource "yandex_lockbox_secret_iam_member" "project1_web_payload_viewer" {
+  secret_id = data.terraform_remote_state.lockbox.outputs.lockbox_id
+  role      = "lockbox.payloadViewer"
+
+  member = "serviceAccount:${yandex_iam_service_account.project1_web.id}"
 }

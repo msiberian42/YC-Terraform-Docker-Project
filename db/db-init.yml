@@ -1,6 +1,13 @@
 #cloud-config
 
-package_update: true
+package_update: truec
+package_upgrade: false
+
+datasource:
+  Ec2:
+    strict_id: false
+  secrets:
+    project1_db: ${db_lockbox_secret_id}
 
 packages:
   - mysql-server
@@ -9,6 +16,7 @@ packages:
 write_files:
   - path: /etc/mysql/mysql.conf.d/mysqld.cnf
     permissions: "0644"
+    owner: root:root
     content: |
       [mysqld]
       bind-address = 0.0.0.0
@@ -20,8 +28,58 @@ runcmd:
   - systemctl enable mysql
   - systemctl restart mysql
 
-  - mysql -e "CREATE DATABASE IF NOT EXISTS ${db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-  - mysql -e "CREATE USER IF NOT EXISTS '${db_user}'@'%' IDENTIFIED BY '${db_password}';"
-  - mysql -e "ALTER USER '${db_user}'@'%' IDENTIFIED BY '${db_password}';"
-  - mysql -e "GRANT ALL PRIVILEGES ON ${db_name}.* TO '${db_user}'@'%';"
-  - mysql -e "FLUSH PRIVILEGES;"
+  - |
+      set -eu
+
+      LOCKBOX_SECRET_ID="${db_lockbox_secret_id}"
+      DB_PASSWORD=""
+
+      for attempt in $(seq 1 12); do
+        IAM_TOKEN="$(
+          curl -fsS \
+            --header Metadata-Flavor:Google \
+            http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
+          | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' \
+          || true
+        )"
+
+        if [ -n "$${IAM_TOKEN}" ]; then
+          DB_PASSWORD="$(
+            curl -fsS \
+              --header "Authorization: Bearer $${IAM_TOKEN}" \
+              "https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$${LOCKBOX_SECRET_ID}/payload" \
+            | python3 -c '
+      import json
+      import sys
+
+      payload = json.load(sys.stdin)
+
+      for entry in payload["entries"]:
+          if entry["key"] == "password":
+              print(entry["textValue"])
+              break
+      ' \
+            || true
+          )"
+        fi
+
+        if [ -n "$${DB_PASSWORD}" ]; then
+          break
+        fi
+
+        sleep 5
+      done
+
+      test -n "$${DB_PASSWORD}"
+
+      mysql -e "CREATE DATABASE IF NOT EXISTS \`${db_name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+      mysql -e "CREATE USER IF NOT EXISTS '${db_user}'@'%' IDENTIFIED BY '$${DB_PASSWORD}';"
+
+      mysql -e "ALTER USER '${db_user}'@'%' IDENTIFIED BY '$${DB_PASSWORD}';"
+
+      mysql -e "GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '${db_user}'@'%';"
+
+      mysql -e "FLUSH PRIVILEGES;"
+
+      mysql -e "SHOW GRANTS FOR '${db_user}'@'%';"

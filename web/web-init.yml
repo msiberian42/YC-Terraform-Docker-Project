@@ -3,20 +3,14 @@
 package_update: true
 package_upgrade: false
 
-packages:
-  - docker.io
-  - docker-compose-v2
-  - curl
-  - openssh-server
-
-# Создаём каталоги
 bootcmd:
+  - mkdir -p /opt/project1
   - mkdir -p /opt/project1/haproxy/reverse
   - mkdir -p /opt/project1/nginx/ingress
 
 write_files:
 
-  # Docker compose
+  # Docker Compose
   - path: /opt/project1/compose.yaml
     permissions: "0644"
     owner: root:root
@@ -40,11 +34,11 @@ write_files:
             backend:
               ipv4_address: 172.20.0.5
           environment:
-            DB_HOST: ${db_host}
-            DB_PORT: 3306
-            DB_NAME: ${db_name}
-            DB_USER: ${db_user}
-            DB_PASSWORD: ${db_password}
+            DB_HOST: "${db_host}"
+            DB_PORT: "3306"
+            DB_NAME: "${db_name}"
+            DB_USER: "${db_user}"
+            DB_PASSWORD: $${DB_PASSWORD}
 
         ingress-proxy:
           image: nginx:latest
@@ -69,7 +63,7 @@ write_files:
     content: |
       ${haproxy_cfg}
 
-  # Nginx
+  # NGINX
   - path: /opt/project1/nginx/ingress/nginx.conf
     permissions: "0644"
     owner: root:root
@@ -82,53 +76,101 @@ write_files:
     content: |
       ${nginx_default}
 
-  # Enviroment
-  - path: /opt/project1/.env
-    permissions: "0600"
-    owner: root:root
-    content: |
-      WEB_IMAGE=${web_image}
-      DB_HOST=${db_host}
-      DB_PORT=3306
-      DB_NAME=${db_name}
-      DB_USER=${db_user}
-      DB_PASSWORD=${db_password}
-
 runcmd:
-  # Запускаем SSH
-  - systemctl enable ssh
-  - systemctl start ssh
 
-  # Запускаем Docker
+  - |
+      set -eux
+
+      export DEBIAN_FRONTEND=noninteractive
+
+      echo "=== APT: update ==="
+      apt-get update
+
+      echo "=== APT: install software-properties-common ==="
+      apt-get install -y software-properties-common
+
+      echo "=== APT: enable universe ==="
+      add-apt-repository -y universe
+
+      echo "=== APT: update after enabling universe ==="
+      apt-get update
+
+      echo "=== APT: install packages ==="
+      apt-get install -y \
+        docker.io \
+        docker-compose-v2 \
+        curl \
+        python3 \
+        openssh-server
+
+      echo "=== Installed versions ==="
+      docker --version
+      docker compose version
+      python3 --version
+      curl --version | head -n 1
+
+  # SSH
+  - systemctl unmask ssh.service
+  - systemctl enable ssh.service
+  - systemctl restart ssh.service
+  - systemctl is-active --quiet ssh.service
+
+  - sshd -t
+  - ss -lntp | grep ':22'
+
+  # Docker
   - systemctl enable docker
   - systemctl start docker
 
-  # Добавляем ubuntu в группу docker
+  # ubuntu -> docker
   - usermod -aG docker ubuntu
 
-  # Создаём директории приложения
-  - mkdir -p /opt/project1
-
-  # Авторизация в Yandex Container Registry
+  # Получаем пароль из Lockbox и запускаем приложение
   - |
-      TOKEN=$(curl --fail --silent \
-        --header Metadata-Flavor:Google \
-        http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
-        | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+      set -eu
 
-      echo "$TOKEN" | docker login \
+      LOCKBOX_SECRET_ID="${db_lockbox_secret_id}"
+
+      IAM_TOKEN="$(
+        curl -fsS \
+          --header Metadata-Flavor:Google \
+          http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
+          | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])'
+      )"
+
+      DB_PASSWORD="$(
+        curl -fsS \
+          --header "Authorization: Bearer $${IAM_TOKEN}" \
+          "https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$${LOCKBOX_SECRET_ID}/payload" \
+          | python3 -c '
+      import json
+      import sys
+
+      payload = json.load(sys.stdin)
+
+      for entry in payload["entries"]:
+          if entry["key"] == "password":
+              print(entry["textValue"])
+              break
+      '
+      )"
+
+      test -n "$${DB_PASSWORD}"
+
+      echo "$${IAM_TOKEN}" | docker login \
         --username iam \
         --password-stdin \
         cr.yandex
 
-  # Переходим в каталог приложения
-  - cd /opt/project1
+      export WEB_IMAGE="${web_image}"
+      export DB_HOST="${db_host}"
+      export DB_PORT="3306"
+      export DB_NAME="${db_name}"
+      export DB_USER="${db_user}"
+      export DB_PASSWORD
 
-  # Скачиваем образы
-  - docker compose pull
+      cd /opt/project1
 
-  # Запускаем приложение
-  - docker compose up -d
-
-  # Показываем состояние контейнеров
-  - docker compose ps
+      docker compose pull
+      docker compose up -d
+      docker compose ps
