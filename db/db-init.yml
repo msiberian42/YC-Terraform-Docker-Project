@@ -1,13 +1,7 @@
 #cloud-config
 
-package_update: truec
+package_update: true
 package_upgrade: false
-
-datasource:
-  Ec2:
-    strict_id: false
-  secrets:
-    project1_db: ${db_lockbox_secret_id}
 
 packages:
   - mysql-server
@@ -32,23 +26,19 @@ runcmd:
       set -eu
 
       LOCKBOX_SECRET_ID="${db_lockbox_secret_id}"
-      DB_PASSWORD=""
 
-      for attempt in $(seq 1 12); do
-        IAM_TOKEN="$(
-          curl -fsS \
-            --header Metadata-Flavor:Google \
-            http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
-          | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' \
-          || true
-        )"
+      IAM_TOKEN="$(
+        curl -fsS \
+          --header Metadata-Flavor:Google \
+          http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
+      )"
 
-        if [ -n "$${IAM_TOKEN}" ]; then
-          DB_PASSWORD="$(
-            curl -fsS \
-              --header "Authorization: Bearer $${IAM_TOKEN}" \
-              "https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$${LOCKBOX_SECRET_ID}/payload" \
-            | python3 -c '
+      DB_PASSWORD="$(
+        curl -fsS \
+          --header "Authorization: Bearer $${IAM_TOKEN}" \
+          "https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$${LOCKBOX_SECRET_ID}/payload" \
+        | python3 -c '
       import json
       import sys
 
@@ -58,17 +48,8 @@ runcmd:
           if entry["key"] == "password":
               print(entry["textValue"])
               break
-      ' \
-            || true
-          )"
-        fi
-
-        if [ -n "$${DB_PASSWORD}" ]; then
-          break
-        fi
-
-        sleep 5
-      done
+      '
+      )"
 
       test -n "$${DB_PASSWORD}"
 

@@ -41,7 +41,7 @@ variable "vms_resources" {
       memory        = 4,
       core_fraction = 20,
       size          = 15,
-      preemptible   = true,
+      preemptible   = false,
       nat           = true
     }
   }
